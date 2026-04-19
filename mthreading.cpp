@@ -8,6 +8,7 @@
 #include <thread>
 #include <future>
 #include <algorithm>
+#include <memory>
 
 namespace fs = std::filesystem;
 
@@ -266,17 +267,18 @@ private:
 
             if (recursive)
             {
-                // Create a promise to signal completion of the move operation
                 std::promise<void> promise;
                 std::future<void> future = promise.get_future();
 
-                // Create a thread to perform the recursive move
                 std::thread thread(&MvCommand::recursiveMove, this, source, destination, std::move(promise));
 
-                // Wait for the move operation to complete
-                future.wait();
+                try { future.get(); }
+                catch (const std::exception &e)
+                {
+                    thread.join();
+                    throw;
+                }
 
-                // Join the thread
                 thread.join();
             }
             else
@@ -295,18 +297,17 @@ private:
     {
         try
         {
-            // Perform the recursive move
             fs::copy(source, destination, fs::copy_options::recursive | fs::copy_options::skip_existing);
             fs::remove_all(source);
 
             std::cout << "Moved (recursively): " << source << " to " << destination << "\n";
 
-            // Signal completion
             promise.set_value();
         }
-        catch (const std::exception &e)
+        catch (...)
         {
-            std::cerr << "Error moving (recursively) " << source << " to " << destination << ": " << e.what() << "\n";
+            try { promise.set_exception(std::current_exception()); }
+            catch (...) {}
         }
     }
 
@@ -399,17 +400,18 @@ private:
             fs::copy_options options = fs::copy_options::none;
             if (recursive)
             {
-                // Create a promise to signal completion of the copy operation
                 std::promise<void> promise;
                 std::future<void> future = promise.get_future();
 
-                // Create a thread to perform the recursive copy
                 std::thread thread(&CpCommand::recursiveCopy, this, source, destination, std::move(promise));
 
-                // Wait for the copy operation to complete
-                future.wait();
+                try { future.get(); }
+                catch (const std::exception &e)
+                {
+                    thread.join();
+                    throw;
+                }
 
-                // Join the thread
                 thread.join();
             }
             else
@@ -432,15 +434,14 @@ private:
     {
         try
         {
-            // Perform the recursive copy
             fs::copy(source, destination, fs::copy_options::recursive | fs::copy_options::skip_existing);
 
-            // Signal completion
             promise.set_value();
         }
-        catch (const std::exception &e)
+        catch (...)
         {
-            std::cerr << "Error copying (recursively) " << source << " to " << destination << ": " << e.what() << "\n";
+            try { promise.set_exception(std::current_exception()); }
+            catch (...) {}
         }
     }
 
@@ -464,6 +465,7 @@ public:
         bool recursive = false;
         bool force = false;
         bool verbose = false;
+        std::vector<std::future<void>> futures;
 
         for (size_t i = 1; i < args.size(); ++i)
         {
@@ -488,8 +490,20 @@ public:
             }
             else
             {
-                // Remove each file or directory in a separate thread
-                std::async(std::launch::async, &RmCommand::removeFileOrDirectory, this, arg, recursive, force, verbose);
+                futures.push_back(
+                    std::async(std::launch::async,
+                               &RmCommand::removeFileOrDirectory,
+                               this, arg, recursive, force, verbose)
+                );
+            }
+        }
+
+        for (auto &f : futures)
+        {
+            try { f.get(); }
+            catch (const std::exception &e)
+            {
+                std::cerr << "rm task failed: " << e.what() << "\n";
             }
         }
     }
@@ -583,31 +597,19 @@ int main()
         }
         tokens.push_back(input);
 
-        Command *command = nullptr;
+        std::unique_ptr<Command> command;
         if (tokens[0] == "cd")
-        {
-            command = new CdCommand();
-        }
+            command = std::make_unique<CdCommand>();
         else if (tokens[0] == "ls")
-        {
-            command = new LsCommand();
-        }
+            command = std::make_unique<LsCommand>();
         else if (tokens[0] == "mv")
-        {
-            command = new MvCommand();
-        }
+            command = std::make_unique<MvCommand>();
         else if (tokens[0] == "cp")
-        {
-            command = new CpCommand();
-        }
+            command = std::make_unique<CpCommand>();
         else if (tokens[0] == "rm")
-        {
-            command = new RmCommand();
-        }
+            command = std::make_unique<RmCommand>();
         else if (tokens[0] == "exit")
-        {
             break;
-        }
         else
         {
             std::cout << "Invalid command\n";
@@ -615,7 +617,6 @@ int main()
         }
 
         command->execute(tokens);
-        delete command;
     }
 
     return 0;
