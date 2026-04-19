@@ -12,6 +12,117 @@
 
 namespace fs = std::filesystem;
 
+// State-machine tokenizer that handles:
+//   - Double quotes:   cd "My Documents"  → ["cd", "My Documents"]
+//   - Single quotes:   echo 'hello world' → ["echo", "hello world"]
+//   - Backslash escape: cp My\ File.txt dest/ → ["cp", "My File.txt", "dest/"]
+//   - Multiple/leading/trailing spaces are ignored
+enum class TokenState { NORMAL, IN_SINGLE_QUOTE, IN_DOUBLE_QUOTE, ESCAPED };
+
+std::vector<std::string> tokenize(const std::string &input)
+{
+    std::vector<std::string> tokens;
+    std::string current;
+    TokenState state = TokenState::NORMAL;
+    TokenState prev_state = TokenState::NORMAL; // saved state before ESCAPED
+
+    for (size_t i = 0; i < input.size(); ++i)
+    {
+        char c = input[i];
+
+        // Strip Windows-style carriage returns
+        if (c == '\r') continue;
+
+        switch (state)
+        {
+        case TokenState::NORMAL:
+            if (std::isspace(static_cast<unsigned char>(c)))
+            {
+                // Space in NORMAL mode = end of current token
+                if (!current.empty())
+                {
+                    tokens.push_back(current);
+                    current.clear();
+                }
+                // Consecutive spaces are simply skipped
+            }
+            else if (c == '\'')
+            {
+                // Enter single-quote mode: everything until closing ' is literal
+                state = TokenState::IN_SINGLE_QUOTE;
+            }
+            else if (c == '"')
+            {
+                // Enter double-quote mode: supports backslash escapes inside
+                state = TokenState::IN_DOUBLE_QUOTE;
+            }
+            else if (c == '\\')
+            {
+                // Backslash in NORMAL: take the next character literally
+                prev_state = TokenState::NORMAL;
+                state = TokenState::ESCAPED;
+            }
+            else
+            {
+                current += c;
+            }
+            break;
+
+        case TokenState::IN_SINGLE_QUOTE:
+            if (c == '\'')
+            {
+                // Closing single quote: return to NORMAL
+                state = TokenState::NORMAL;
+            }
+            else
+            {
+                // Everything inside single quotes is literal (spaces, *, etc.)
+                current += c;
+            }
+            break;
+
+        case TokenState::IN_DOUBLE_QUOTE:
+            if (c == '"')
+            {
+                // Closing double quote: return to NORMAL
+                state = TokenState::NORMAL;
+            }
+            else if (c == '\\')
+            {
+                // Backslash inside double quotes: escape the next char
+                prev_state = TokenState::IN_DOUBLE_QUOTE;
+                state = TokenState::ESCAPED;
+            }
+            else
+            {
+                current += c;
+            }
+            break;
+
+        case TokenState::ESCAPED:
+            // Whatever the next char is, take it literally (e.g. space, quote, backslash)
+            current += c;
+            state = prev_state;
+            break;
+        }
+    }
+
+    // Handle unterminated quotes
+    if (state == TokenState::IN_SINGLE_QUOTE || state == TokenState::IN_DOUBLE_QUOTE)
+    {
+        std::cerr << "Error: unterminated quote in input\n";
+        return {};
+    }
+
+    // Flush the last token (input doesn't end with a space)
+    if (!current.empty())
+    {
+        tokens.push_back(current);
+    }
+
+    return tokens;
+}
+
 class Command
 {
 public:
@@ -588,14 +699,8 @@ int main()
         std::cout << "Enter command: ";
         std::getline(std::cin, input);
 
-        std::vector<std::string> tokens;
-        size_t pos = 0;
-        while ((pos = input.find(' ')) != std::string::npos)
-        {
-            tokens.push_back(input.substr(0, pos));
-            input.erase(0, pos + 1);
-        }
-        tokens.push_back(input);
+        std::vector<std::string> tokens = tokenize(input);
+        if (tokens.empty()) continue;
 
         std::unique_ptr<Command> command;
         if (tokens[0] == "cd")
