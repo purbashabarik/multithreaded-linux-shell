@@ -34,6 +34,19 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_options(eds_core PUBLIC -fsanitize=address,undefined)
 endif()
 
+# --- Qt GUI Frontend (optional) ---
+option(EDS_BUILD_GUI "Build the Qt GUI frontend" ON)
+if(EDS_BUILD_GUI)
+    find_package(Qt6 COMPONENTS Widgets QUIET)
+    if(Qt6_FOUND)
+        qt_standard_project_setup()
+        add_subdirectory(gui)
+        message(STATUS "Qt6 found — building eds-gui")
+    else()
+        message(STATUS "Qt6 not found — skipping GUI build (install Qt6 and re-run cmake)")
+    endif()
+endif()
+
 # --- Tests ---
 enable_testing()
 add_subdirectory(tests)
