@@ -1,42 +1,47 @@
 // ============================================================================
 // File:    main.cpp
 // Summary: Entry point for the Embedded Diagnostic Shell (EDS).
-//          Runs a REPL (Read-Eval-Print Loop): reads user input, tokenizes
-//          it with the state-machine tokenizer, dispatches to the right
-//          Command subclass via CommandFactory, and executes it.
-//          This file is intentionally small — all logic lives in the
-//          individual command classes and the tokenizer.
+//          Runs a REPL: reads input, tokenizes it, splits on pipes,
+//          and routes to the Pipeline executor which handles:
+//            - Built-in commands (cd, ls, mv, cp, rm)
+//            - External programs (grep, wc, sort, cat, etc. via $PATH)
+//            - Pipes between commands (cmd1 | cmd2 | cmd3)
+//            - I/O redirection (< file, > file, >> file)
+//          The shell also handles EOF (Ctrl+D) for clean exit.
 // ============================================================================
 
 #include "Tokenizer.h"
-#include "CommandFactory.h"
+#include "Pipeline.h"
 #include <iostream>
+#include <csignal>
 
 int main()
 {
+    // Ignore SIGPIPE so piped commands don't kill the shell when a reader
+    // exits early (e.g. "ls | head -n 1" — head closes before ls finishes)
+    signal(SIGPIPE, SIG_IGN);
+
     std::string input;
     std::cout << ".........Welcome to New Shell........\n";
 
     while (true)
     {
-        std::cout << ">>";
-        std::cout << "Enter command: ";
-        std::getline(std::cin, input);
+        std::cout << "eds> ";
+        if (!std::getline(std::cin, input)) break;   // EOF (Ctrl+D)
 
         std::vector<std::string> tokens = tokenize(input);
         if (tokens.empty()) continue;
 
         if (tokens[0] == "exit") break;
 
-        auto command = CommandFactory::create(tokens[0]);
-        if (!command)
+        // Split tokens on "|" into pipeline stages and execute
+        auto stages = splitPipeline(tokens);
+        if (!stages.empty())
         {
-            std::cout << "Invalid command\n";
-            continue;
+            executePipeline(stages);
         }
-
-        command->execute(tokens);
     }
 
+    std::cout << "\n";
     return 0;
 }

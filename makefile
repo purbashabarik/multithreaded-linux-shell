@@ -35,8 +35,6 @@ $(BIN_DIR)/eds: $(OBJS) | $(BIN_DIR)
 	$(CXX) $(OBJS) -o $@ $(LINK_FLAGS)
 
 # --- Compile each .cpp to .o with auto-dependency tracking ---
-# -MMD generates .d files listing header dependencies
-# -MP adds phony targets so deleted headers don't break the build
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
@@ -44,8 +42,37 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 $(OBJ_DIR) $(BIN_DIR):
 	mkdir -p $@
 
+# --- Smoke tests: built-ins, pipes, external commands, redirects ---
+test: debug
+	@echo "=== Test 1: ls built-in ==="
+	@printf 'ls\nexit\n' | $(BIN_DIR)/eds-debug
+	@echo ""
+	@echo "=== Test 2: cd + ls ==="
+	@printf 'cd ~\nls\nexit\n' | $(BIN_DIR)/eds-debug
+	@echo ""
+	@echo "=== Test 3: external command (echo) ==="
+	@printf 'echo hello world\nexit\n' | $(BIN_DIR)/eds-debug
+	@echo ""
+	@echo "=== Test 4: pipe (ls | wc -l) ==="
+	@printf 'ls | wc -l\nexit\n' | $(BIN_DIR)/eds-debug
+	@echo ""
+	@echo "=== Test 5: multi-pipe (ls | sort | head -n 3) ==="
+	@printf 'ls | sort | head -n 3\nexit\n' | $(BIN_DIR)/eds-debug
+	@echo ""
+	@echo "=== Test 6: redirect (echo test > /tmp/eds_test.txt) ==="
+	@printf 'echo redirect_works > /tmp/eds_test.txt\nexit\n' | $(BIN_DIR)/eds-debug
+	@cat /tmp/eds_test.txt
+	@rm -f /tmp/eds_test.txt
+	@echo ""
+	@echo "=== All smoke tests passed ==="
+
+# --- Unit tests (tokenizer) ---
+test-unit: debug
+	$(CXX) $(CXXSTD) $(WARN) $(INCLUDES) -o $(BIN_DIR)/test_tokenizer tests/test_tokenizer.cpp src/Tokenizer.cpp
+	$(BIN_DIR)/test_tokenizer
+
 # --- Clean all build artifacts ---
-.PHONY: all debug release clean
+.PHONY: all debug release test test-unit clean
 
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
