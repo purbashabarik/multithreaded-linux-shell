@@ -14,8 +14,8 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    app.setApplicationName("EDS - Embedded Diagnostic Shell");
-    app.setOrganizationName("EDS");
+    app.setApplicationName("ShellX - Multithreaded Linux Shell");
+    app.setOrganizationName("ShellX");
 
     QFont monospace("Menlo", 13);
     monospace.setStyleHint(QFont::Monospace);

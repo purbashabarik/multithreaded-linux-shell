@@ -21,17 +21,17 @@ all: release
 # --- Debug build (with AddressSanitizer + UBSan) ---
 debug: CXXFLAGS := $(CXXSTD) $(WARN) $(DEBUG_FLAGS) $(INCLUDES)
 debug: LINK_FLAGS := $(LDFLAGS) -fsanitize=address,undefined
-debug: $(BIN_DIR)/eds-debug
+debug: $(BIN_DIR)/shellx-debug
 
-$(BIN_DIR)/eds-debug: $(OBJS) | $(BIN_DIR)
+$(BIN_DIR)/shellx-debug: $(OBJS) | $(BIN_DIR)
 	$(CXX) $(OBJS) -o $@ $(LINK_FLAGS)
 
 # --- Release build (optimized) ---
 release: CXXFLAGS := $(CXXSTD) $(WARN) $(RELEASE_FLAGS) $(INCLUDES)
 release: LINK_FLAGS := $(LDFLAGS)
-release: $(BIN_DIR)/eds
+release: $(BIN_DIR)/shellx
 
-$(BIN_DIR)/eds: $(OBJS) | $(BIN_DIR)
+$(BIN_DIR)/shellx: $(OBJS) | $(BIN_DIR)
 	$(CXX) $(OBJS) -o $@ $(LINK_FLAGS)
 
 # --- Compile each .cpp to .o with auto-dependency tracking ---
@@ -45,24 +45,24 @@ $(OBJ_DIR) $(BIN_DIR):
 # --- Smoke tests: built-ins, pipes, external commands, redirects ---
 test: debug
 	@echo "=== Test 1: ls built-in ==="
-	@printf 'ls\nexit\n' | $(BIN_DIR)/eds-debug
+	@printf 'ls\nexit\n' | $(BIN_DIR)/shellx-debug
 	@echo ""
 	@echo "=== Test 2: cd + ls ==="
-	@printf 'cd ~\nls\nexit\n' | $(BIN_DIR)/eds-debug
+	@printf 'cd ~\nls\nexit\n' | $(BIN_DIR)/shellx-debug
 	@echo ""
 	@echo "=== Test 3: external command (echo) ==="
-	@printf 'echo hello world\nexit\n' | $(BIN_DIR)/eds-debug
+	@printf 'echo hello world\nexit\n' | $(BIN_DIR)/shellx-debug
 	@echo ""
 	@echo "=== Test 4: pipe (ls | wc -l) ==="
-	@printf 'ls | wc -l\nexit\n' | $(BIN_DIR)/eds-debug
+	@printf 'ls | wc -l\nexit\n' | $(BIN_DIR)/shellx-debug
 	@echo ""
 	@echo "=== Test 5: multi-pipe (ls | sort | head -n 3) ==="
-	@printf 'ls | sort | head -n 3\nexit\n' | $(BIN_DIR)/eds-debug
+	@printf 'ls | sort | head -n 3\nexit\n' | $(BIN_DIR)/shellx-debug
 	@echo ""
-	@echo "=== Test 6: redirect (echo test > /tmp/eds_test.txt) ==="
-	@printf 'echo redirect_works > /tmp/eds_test.txt\nexit\n' | $(BIN_DIR)/eds-debug
-	@cat /tmp/eds_test.txt
-	@rm -f /tmp/eds_test.txt
+	@echo "=== Test 6: redirect (echo test > /tmp/shellx_test.txt) ==="
+	@printf 'echo redirect_works > /tmp/shellx_test.txt\nexit\n' | $(BIN_DIR)/shellx-debug
+	@cat /tmp/shellx_test.txt
+	@rm -f /tmp/shellx_test.txt
 	@echo ""
 	@echo "=== All smoke tests passed ==="
 

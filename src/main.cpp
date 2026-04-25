@@ -22,11 +22,11 @@ int main()
     signal(SIGPIPE, SIG_IGN);
 
     std::string input;
-    std::cout << ".........Welcome to New Shell........\n";
+    std::cout << ".........Welcome to ShellX........\n";
 
     while (true)
     {
-        std::cout << "eds> ";
+        std::cout << "shellx> ";
         if (!std::getline(std::cin, input)) break;   // EOF (Ctrl+D)
 
         std::vector<std::string> tokens = tokenize(input);

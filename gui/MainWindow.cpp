@@ -21,7 +21,7 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_darkMode(true), m_tabCounter(0)
 {
-    setWindowTitle("EDS - Embedded Diagnostic Shell");
+    setWindowTitle("ShellX - Multithreaded Linux Shell");
 
     setupFileTree();
     setupTabs();
@@ -50,13 +50,14 @@ void MainWindow::setupMenuBar()
 
     QMenu *helpMenu = menuBar()->addMenu("&Help");
     helpMenu->addAction("About", [this]() {
-        QMessageBox::about(this, "About EDS",
-            "Embedded Diagnostic Shell (EDS)\n\n"
-            "A multi-threaded C++ shell with a Qt GUI frontend.\n"
+        QMessageBox::about(this, "About ShellX",
+            "ShellX — Multithreaded Linux Shell\n\n"
+            "A C++17 shell with multithreaded file operations,\n"
+            "POSIX process management, and a Qt6 GUI frontend.\n"
             "Supports: built-in commands, external programs,\n"
             "pipes, I/O redirection, syntax highlighting,\n"
             "file tree, tabbed sessions, and command palette.\n\n"
-            "Built as an OOPD portfolio project.");
+            "Built with C++17, POSIX APIs, and Qt6.");
     });
 }
 

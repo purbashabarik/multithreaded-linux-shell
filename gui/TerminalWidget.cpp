@@ -190,7 +190,7 @@ TerminalWidget::TerminalWidget(QWidget *parent)
 
     // Input line
     auto *inputLayout = new QHBoxLayout;
-    auto *promptLabel = new QLabel("eds> ");
+    auto *promptLabel = new QLabel("shellx> ");
     promptLabel->setStyleSheet("font-weight: bold; color: #3B8EEA;");
     m_input = new QLineEdit;
     m_input->setPlaceholderText("Enter command...");
@@ -213,7 +213,7 @@ TerminalWidget::TerminalWidget(QWidget *parent)
     connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, &TerminalWidget::onProcessFinished);
 
-    appendOutput(".........Welcome to EDS GUI Shell........\n");
+    appendOutput(".........Welcome to ShellX........\n");
 }
 
 void TerminalWidget::focusInput()
@@ -231,14 +231,52 @@ void TerminalWidget::onReturnPressed()
     m_history.append(cmd);
     m_historyIndex = m_history.size();
 
-    m_output->appendAnsi(QString("\033[1;34meds>\033[0m %1\n").arg(cmd));
+    m_output->appendAnsi(QString("\033[1;34mshellx>\033[0m %1\n").arg(cmd));
 
     runCommand(cmd);
 }
 
+static QStringList parseCommandLine(const QString &input)
+{
+    QStringList tokens;
+    QString current;
+    bool inDouble = false, inSingle = false, escaped = false;
+
+    for (int i = 0; i < input.length(); ++i)
+    {
+        QChar c = input[i];
+
+        if (escaped)
+        {
+            current += c;
+            escaped = false;
+            continue;
+        }
+
+        if (c == '\\' && !inSingle)
+        {
+            escaped = true;
+            continue;
+        }
+
+        if (c == '"' && !inSingle)  { inDouble = !inDouble; continue; }
+        if (c == '\'' && !inDouble) { inSingle = !inSingle; continue; }
+
+        if (c.isSpace() && !inDouble && !inSingle)
+        {
+            if (!current.isEmpty()) { tokens.append(current); current.clear(); }
+            continue;
+        }
+
+        current += c;
+    }
+    if (!current.isEmpty()) tokens.append(current);
+    return tokens;
+}
+
 void TerminalWidget::runCommand(const QString &cmd)
 {
-    QStringList parts = cmd.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+    QStringList parts = parseCommandLine(cmd);
     if (parts.isEmpty()) return;
 
     QString command = parts[0];
@@ -268,9 +306,11 @@ void TerminalWidget::executeBuiltin(const QString &cmd, const QStringList &args)
         if (args.isEmpty())
             target = QDir::homePath();
         else
-            target = args[0].startsWith("~")
-                     ? QDir::homePath() + args[0].mid(1)
-                     : args[0];
+        {
+            target = args.join(' ');
+            if (target.startsWith("~"))
+                target = QDir::homePath() + target.mid(1);
+        }
 
         QDir dir(target);
         if (!dir.isAbsolute())

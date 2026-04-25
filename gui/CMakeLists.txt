@@ -1,7 +1,7 @@
 # ============================================================================
 # gui/CMakeLists.txt
-# Builds the Qt6 GUI frontend (eds-gui).
-# Links against eds_core (the static library containing all command logic)
+# Builds the Qt6 GUI frontend (shellx-gui).
+# Links against shellx_core (the static library containing all command logic)
 # and Qt6::Widgets.
 # ============================================================================
 
@@ -16,20 +16,20 @@ set(GUI_SOURCES
     CommandPalette.cpp  CommandPalette.h
 )
 
-qt_add_executable(eds-gui ${GUI_SOURCES})
+qt_add_executable(shellx-gui ${GUI_SOURCES})
 
-target_link_libraries(eds-gui PRIVATE
+target_link_libraries(shellx-gui PRIVATE
     Qt6::Widgets
-    eds_core
+    shellx_core
 )
 
-target_include_directories(eds-gui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(shellx-gui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # macOS: set proper bundle info
 if(APPLE)
-    set_target_properties(eds-gui PROPERTIES
+    set_target_properties(shellx-gui PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.eds.gui"
-        MACOSX_BUNDLE_BUNDLE_NAME "EDS"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.shellx.gui"
+        MACOSX_BUNDLE_BUNDLE_NAME "ShellX"
     )
 endif()

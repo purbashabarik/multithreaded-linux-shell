@@ -368,21 +368,6 @@ ctest --output-on-failure
 
 ---
 
-## Development Roadmap
-
-The project was built incrementally in 6 phases. Full details in [`UPGRADE_ROADMAP.md`](UPGRADE_ROADMAP.md).
-
-| Phase | Description | Status |
-|:---:|:---|:---:|
-| 1 | Memory safety, thread correctness, exception safety | Done |
-| 2 | Robust tokenizer with quotes and escapes | Done |
-| 3 | Header split, Makefile upgrade, CMake support | Done |
-| 4 | External commands, pipes, I/O redirection | Done |
-| 5 | Tab completion and auto-suggestion | Planned |
-| 6 | Qt6 GUI frontend | Done |
-
----
-
 ## Troubleshooting
 
 ### `cmake` not found
