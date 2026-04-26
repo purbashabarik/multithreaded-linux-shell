@@ -1,4 +1,4 @@
-# EDS — Embedded Diagnostic Shell
+# ShellX — Multithreaded Linux Shell
 
 A **multi-threaded Linux shell** and **Qt6 GUI diagnostic tool** built from scratch in **C++17** using **POSIX APIs**. Supports built-in commands, external program execution, pipelines, I/O redirection, syntax highlighting, and a full desktop GUI frontend — all sharing a single core library.
 
@@ -8,23 +8,21 @@ Built as a portfolio project demonstrating proficiency in **systems programming*
 
 ## Demo
 
-<!-- Add your screenshots/GIF below -->
+### GUI — Built-in Commands
 
-### CLI Mode
-![CLI Demo](screenshots/cli-demo.png)
+#### `ls` — Directory Listing
+![ls command](screenshots/ls.png)
 
-### GUI Mode
-![GUI Demo](screenshots/gui-demo.png)
+#### `cd` — Change Directory (file tree auto-updates)
+![cd command](screenshots/cd.png)
 
-### Command Palette
-![Command Palette](screenshots/command-palette.png)
+#### `rm` & `mkdir` — File Operations
+![rm and mkdir](screenshots/rm_mkdir.png)
 
-### Dark & Light Theme
-| Dark Theme | Light Theme |
-|:---:|:---:|
-| ![Dark](screenshots/dark-theme.png) | ![Light](screenshots/light-theme.png) |
+### GUI — Pipes & Multi-Process IPC
+![Pipe commands](screenshots/pipe.png)
 
-> **Note:** Replace the above paths with your actual screenshot filenames. Create a `screenshots/` folder and place your images there.
+> Add more screenshots to the `screenshots/` folder and reference them here.
 
 ---
 
@@ -77,7 +75,7 @@ Built as a portfolio project demonstrating proficiency in **systems programming*
 ## Project Structure
 
 ```
-eds/
+shellx/
 ├── include/                    # Header files (public interface)
 │   ├── Command.h               #   Abstract base class (Command pattern)
 │   ├── CdCommand.h             #   cd — change directory
@@ -114,11 +112,18 @@ eds/
 │   ├── test_tokenizer.cpp      #   Tokenizer unit tests
 │   └── CMakeLists.txt          #   Test build config
 │
+├── screenshots/                # Demo screenshots for README
+│   ├── ls.png
+│   ├── cd.png
+│   ├── rm_mkdir.png
+│   └── pipe.png
+│
 ├── CMakeLists.txt              # Root CMake config
 ├── makefile                    # GNU Make config (CLI only)
 ├── mthreading.cpp              # Original monolithic source (archived)
 ├── .gitignore
 ├── UPGRADE_ROADMAP.md          # Detailed engineering roadmap
+├── LEARNING_GUIDE.md           # Step-by-step project walkthrough
 └── README.md                   # This file
 ```
 
@@ -153,8 +158,8 @@ Before building, make sure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/eds-shell.git
-cd eds-shell
+git clone https://github.com/purbashabarik/multithreaded-linux-shell.git
+cd multithreaded-linux-shell
 ```
 
 ### 2. Build the CLI (Quick Start — Makefile)
@@ -166,7 +171,7 @@ The fastest way to build and run the shell:
 make release
 
 # Run the shell
-./bin/eds
+./bin/shellx
 ```
 
 Other Makefile targets:
@@ -195,26 +200,26 @@ make -j$(sysctl -n hw.ncpu)        # macOS
 This builds three targets:
 | Target | Description | Location |
 |:---|:---|:---|
-| `eds_core` | Static library (shared command logic) | `build-cmake/libeds_core.a` |
-| `eds` | CLI shell executable | `build-cmake/eds` |
-| `eds-gui` | Qt6 GUI application | `build-cmake/gui/eds-gui.app` (macOS) |
+| `shellx_core` | Static library (shared command logic) | `build-cmake/libshellx_core.a` |
+| `shellx` | CLI shell executable | `build-cmake/shellx` |
+| `shellx-gui` | Qt6 GUI application | `build-cmake/gui/shellx-gui.app` (macOS) |
 
 ### 4. Run the CLI
 
 ```bash
-./eds              # from build-cmake/
+./shellx              # from build-cmake/
 # or
-./bin/eds          # from project root (Makefile build)
+./bin/shellx           # from project root (Makefile build)
 ```
 
 ### 5. Run the GUI
 
 ```bash
 # macOS
-open gui/eds-gui.app
+open build-cmake/gui/shellx-gui.app
 
 # Linux
-./gui/eds-gui
+./build-cmake/gui/shellx-gui
 ```
 
 ---
@@ -224,23 +229,23 @@ open gui/eds-gui.app
 ### CLI Mode
 
 ```
-.........Welcome to New Shell........
-eds> ls
+.........Welcome to ShellX........
+shellx> ls
 CMakeLists.txt  README.md  gui/  include/  makefile  src/  tests/
 
-eds> echo hello world
+shellx> echo hello world
 hello world
 
-eds> ls | sort | head -n 3
+shellx> ls | sort | head -n 3
 CMakeLists.txt
 README.md
 gui
 
-eds> echo "hello" > /tmp/test.txt
-eds> cat /tmp/test.txt
+shellx> echo "hello" > /tmp/test.txt
+shellx> cat /tmp/test.txt
 hello
 
-eds> exit
+shellx> exit
 ```
 
 ### GUI Keyboard Shortcuts
@@ -290,7 +295,7 @@ eds> exit
 │         └─────────────┬───────────────────┘              │
 │                       │                                  │
 │              ┌────────▼─────────┐                        │
-│              │    eds_core      │ (static library)       │
+│              │   shellx_core    │ (static library)       │
 │              │  ┌─────────────┐ │                        │
 │              │  │  Tokenizer  │ │  Input parsing         │
 │              │  ├─────────────┤ │                        │
@@ -307,7 +312,7 @@ eds> exit
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Key design principle:** The GUI and CLI share 100% of command logic through `eds_core`. No Qt types leak into the core; no `std::cout` in the GUI path.
+**Key design principle:** The GUI and CLI share 100% of command logic through `shellx_core`. No Qt types leak into the core; no `std::cout` in the GUI path.
 
 ---
 
@@ -317,12 +322,12 @@ eds> exit
 
 | Option | Default | Description |
 |:---|:---:|:---|
-| `EDS_BUILD_GUI` | `ON` | Build the Qt6 GUI (auto-skips if Qt6 not found) |
+| `SHELLX_BUILD_GUI` | `ON` | Build the Qt6 GUI (auto-skips if Qt6 not found) |
 | `CMAKE_BUILD_TYPE` | `Release` | Set to `Debug` for sanitizers |
 
 ```bash
 # Build without GUI
-cmake .. -DEDS_BUILD_GUI=OFF
+cmake .. -DSHELLX_BUILD_GUI=OFF
 
 # Debug build with sanitizers
 cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=$(brew --prefix qt)
@@ -368,6 +373,19 @@ ctest --output-on-failure
 
 ---
 
+## Development Roadmap
+
+| Phase | Description | Status |
+|:---:|:---|:---:|
+| 1 | Memory safety, thread correctness, exception safety | Done |
+| 2 | Robust tokenizer with quotes and escapes | Done |
+| 3 | Header split, Makefile upgrade, CMake support | Done |
+| 4 | External commands, pipes, I/O redirection | Done |
+| 5 | Tab completion and auto-suggestion | Planned |
+| 6 | Qt6 GUI frontend | Done |
+
+---
+
 ## Troubleshooting
 
 ### `cmake` not found
@@ -390,14 +408,14 @@ sudo apt install qt6-base-dev qt6-base-dev-tools
 sudo chown -R $(whoami) /opt/homebrew
 ```
 
-### `eds-gui` not found after build
+### `shellx-gui` not found after build
 The GUI builds as a macOS `.app` bundle:
 ```bash
 # Correct path
-open build-cmake/gui/eds-gui.app
+open build-cmake/gui/shellx-gui.app
 
 # Or run the binary directly
-./build-cmake/gui/eds-gui.app/Contents/MacOS/eds-gui
+./build-cmake/gui/shellx-gui.app/Contents/MacOS/shellx-gui
 ```
 
 ### AddressSanitizer errors in debug build
@@ -425,7 +443,7 @@ This is intentional — ASan catches memory bugs at runtime. Fix the reported is
 ---
 
 <p align="center">
-  <b>EDS — Embedded Diagnostic Shell</b><br>
+  <b>ShellX — Multithreaded Linux Shell</b><br>
   A systems programming portfolio project<br>
   <i>C++17 &middot; Linux &middot; POSIX &middot; Qt6 &middot; Multithreading &middot; IPC</i>
 </p>
